@@ -1,0 +1,8 @@
+variables:
+  resourceGroup: rg-lbg-voteapp-test-uks # Azure Resource Group for the app
+  acrName: cr-lbg-voteapp-test-uks.azurecr.io # Azure Container Registry name
+  aksCluster: aks-lbg-voteapp-test-uks # Azure Kubernetes Service cluster name
+  aksNamespace: voteapp # Kubernetes namespace for the app
+  imagePullSecret: voteapp-auth # Image pull secret for ACR
+  tag: '$(Build.BuildId)' # Dynamic build tag
+  dockerfilePath: '$(Build.SourcesDirectory)/azure-vote/Dockerfile' # Path to Dockerfile

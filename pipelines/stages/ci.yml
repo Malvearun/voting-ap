@@ -1,0 +1,58 @@
+# ci.yml
+parameters:
+  containerRegistryServiceConnection: ''
+  imageRepository: ''
+  containerRegistry: ''
+  dockerfilePath: ''
+  tag: ''
+
+stages:
+  - stage: Build
+    displayName: Build and Publish Docker Image
+    jobs:
+      - job: Build
+        displayName: Build and Push Image
+        steps:
+          - task: Docker@2
+            displayName: Login to ACR
+            inputs:
+              command: login
+              containerRegistry: ${{ parameters.containerRegistryServiceConnection }}
+
+          - task: Docker@2
+            displayName: Build and Push Image
+            inputs:
+              command: buildAndPush
+              repository: ${{ parameters.imageRepository }}
+              dockerfile: ${{ parameters.dockerfilePath }}
+              containerRegistry: ${{ parameters.containerRegistryServiceConnection }}
+              tags: ${{ parameters.tag }}
+
+      - job: PrepareManifest
+        dependsOn: Build
+        displayName: Prepare Kubernetes Manifest
+        steps:
+          - script: |
+              buildRef="voteapp_${{ parameters.tag }}_$(date +'%Y%m%d%H%M%S')"
+              echo "##vso[task.setvariable variable=buildRef;isOutput=true]$buildRef"
+            name: SetBuildRef
+
+          - task: CopyFiles@2
+            displayName: Rename Manifest File
+            inputs:
+              SourceFolder: $(System.DefaultWorkingDirectory)
+              Contents: azure-vote-all-in-one-redis.yaml
+              TargetFolder: $(Build.ArtifactStagingDirectory)
+              OverWrite: true
+            condition: always()
+
+          - script: |
+              mv $(Build.ArtifactStagingDirectory)/azure-vote-all-in-one-redis.yaml \
+              $(Build.ArtifactStagingDirectory)/$(buildRef).yaml
+            displayName: Rename File with Build Ref
+
+          - task: PublishBuildArtifacts@1
+            displayName: Publish Manifest
+            inputs:
+              PathtoPublish: $(Build.ArtifactStagingDirectory)
+              ArtifactName: manifest

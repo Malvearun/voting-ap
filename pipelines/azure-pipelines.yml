@@ -1,0 +1,29 @@
+# azure-pipelines.yml
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  - template: vars.yml
+
+stages:
+  - template: ci.yml
+    parameters:
+      containerRegistryServiceConnection: ${{ variables.containerRegistryServiceConnection }}
+      imageRepository: ${{ variables.imageRepository }}
+      containerRegistry: ${{ variables.containerRegistry }}
+      dockerfilePath: ${{ variables.dockerfilePath }}
+      tag: $(Build.BuildId)
+
+  - template: cd.yml
+    parameters:
+      containerRegistryServiceConnection: ${{ variables.containerRegistryServiceConnection }}
+      imageRepository: ${{ variables.imageRepository }}
+      containerRegistry: ${{ variables.containerRegistry }}
+      tag: $(Build.BuildId)
+      k8sNamespace: ${{ variables.k8sNamespace }}
+      imagePullSecret: ${{ variables.imagePullSecret }}
+      helmChartPath: ${{ variables.helmChartPath }}
+      helmReleaseName: ${{ variables.helmReleaseName }}
+      helmNamespace: ${{ variables.helmNamespace }}

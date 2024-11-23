@@ -1,0 +1,46 @@
+# cd.yml
+parameters:
+  containerRegistryServiceConnection: ''
+  imageRepository: ''
+  containerRegistry: ''
+  tag: ''
+  k8sNamespace: ''
+  imagePullSecret: ''
+  helmChartPath: ''
+  helmReleaseName: ''
+  helmNamespace: ''
+
+stages:
+  - stage: Deploy
+    displayName: Deploy Application to AKS using Helm
+    jobs:
+      - job: Deploy
+        displayName: Deploy with Helm
+        steps:
+          - task: DownloadPipelineArtifact@2
+            displayName: Download Manifest
+            inputs:
+              buildType: current
+              artifactName: manifest
+
+          - task: HelmInstaller@0
+            displayName: Install Helm
+            inputs:
+              helmVersionToInstall: 'latest'
+
+          - task: HelmDeploy@0
+            displayName: Deploy Application with Helm
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: ${{ parameters.containerRegistryServiceConnection }}
+              azureResourceGroup: 'your-resource-group'  # Specify your Azure Resource Group here
+              kubernetesCluster: ${{ parameters.kubernetesCluster }}
+              namespace: ${{ parameters.helmNamespace }}
+              command: 'upgrade'
+              chartType: 'FilePath'
+              chartPath: ${{ parameters.helmChartPath }}
+              releaseName: ${{ parameters.helmReleaseName }}
+              overrideValues: |
+                image.repository=${{ parameters.containerRegistry }}/${{ parameters.imageRepository }}
+                image.tag=${{ parameters.tag }}
+                image.pullSecrets=${{ parameters.imagePullSecret }}

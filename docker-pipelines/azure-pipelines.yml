@@ -1,0 +1,26 @@
+# azure-pipelines.yml
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  - template: vars.yml
+
+stages:
+  - template: ci.yml
+    parameters:
+      containerRegistry: $(containerRegistry)
+      imageRepository: $(imageRepository)
+      dockerHubUsername: $(DOCKER_HUB_USERNAME)
+      dockerHubPassword: $(DOCKER_HUB_PASSWORD)
+      tag: $(tag)
+
+  - template: cd.yml
+    parameters:
+      containerRegistry: $(containerRegistry)
+      imageRepository: $(imageRepository)
+      tag: $(tag)
+      helmChartPath: $(helmChartPath)
+      helmReleaseName: $(helmReleaseName)
+      helmNamespace: $(helmNamespace)

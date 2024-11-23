@@ -1,0 +1,13 @@
+# vars.yml
+variables:
+  containerRegistry: 'gudshuis'
+  imageRepository: 'azure-vote-app'
+  dockerHubUsername: '$(DOCKER_HUB_USERNAME)'   # Use pipeline environment variables for secrets
+  dockerHubPassword: '$(DOCKER_HUB_PASSWORD)'   # Use pipeline environment variables for secrets
+  tag: 'v2'  # The tag you want to use for the Docker image
+  kubernetesCluster: 'aks-cluster-name'
+  k8sNamespace: 'votingapp'
+  helmChartPath: '$(Build.SourcesDirectory)/voting-app/charts/voting-app-chart'
+  helmReleaseName: 'voting-app'
+  helmNamespace: 'votingapp'
+  imagePullSecret: 'crvoteapptestuks-auth'

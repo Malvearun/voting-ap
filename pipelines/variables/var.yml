@@ -1,0 +1,11 @@
+variables:
+  containerRegistryServiceConnection: votingapptest
+  imageRepository: crvoteapptestuks
+  containerRegistry: crvoteapptestuks.azurecr.io
+  dockerfilePath: $(Build.SourcesDirectory)/azure-vote/Dockerfile
+  tag: $(Build.BuildId)
+  k8sNamespace: votingapp
+  imagePullSecret: crvoteapptestuks-auth
+  helmChartPath: $(Build.SourcesDirectory)/helm/mychart
+  helmReleaseName: voteapp-release
+  helmNamespace: votingapp

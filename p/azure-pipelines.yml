@@ -1,0 +1,13 @@
+name: azure-voting-app-$(Date:yyyyMMdd)$(Rev:.r) # Pipeline name format with date and revision number
+
+trigger:
+  branches:
+    include:
+      - main # Trigger the pipeline for commits to the main branch
+
+variables:
+  - template: variables/variable.yml # Use external variable file for reusability and separation of concerns
+
+stages:
+  - template: stages/ci.yml # Reference the CI stage template
+  - template: stages/cd.yml # Reference the CD stage template
