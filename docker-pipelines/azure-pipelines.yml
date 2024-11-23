@@ -2,20 +2,19 @@ trigger:
   branches:
     include:
       - main
-      - master
       - feature/*
 
 # Import variable template
 variables:
-  - template: docker-pipelines/variables/var.yml
+  - template: variables/var.yml   # Correct path to var.yml
 
 stages:
   - stage: Build
     displayName: Build Stage
     jobs:
-      - template: docker-pipelines/stages/ci.yml
+      - template: stages/ci.yml
 
   - stage: Deploy
     displayName: Deploy Stage
     jobs:
-      - template: docker-pipelines/stages/cd.yml
+      - template: stages/cd.yml
