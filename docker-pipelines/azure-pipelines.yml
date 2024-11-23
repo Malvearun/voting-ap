@@ -14,7 +14,7 @@ stages:
     displayName: Approve Release Build
     jobs:
       - deployment: ReviewRelease_App
-        pool: Default
+        pool: AZP_POOL
         environment: Approval-Updates
         continueOnError: false
         strategy:
@@ -34,7 +34,7 @@ stages:
     displayName: Approve Release Deploy
     jobs:
       - deployment: DeployApproval
-        pool: Default
+        pool: AZP_POOL
         environment: Approval-Deploy
         continueOnError: false
         strategy:
