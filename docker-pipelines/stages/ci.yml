@@ -2,6 +2,7 @@ jobs:
   - job: Build
     displayName: Build and Push Docker Image
     steps:
+      # Step 1: Build the Docker image
       - task: Docker@2
         displayName: Docker Build
         inputs:
@@ -10,17 +11,24 @@ jobs:
           tags: $(tag)
           buildContext: $(Build.SourcesDirectory)
 
-      # Add the Docker tag command to tag the image after building it
+      # Step 2: Debugging step to list all Docker images
+      - script: |
+          echo "Listing all Docker images:"
+          docker images
+        displayName: 'List Docker Images for Debugging'
+
+      # Step 3: Manually tag the image if it doesn't exist
       - script: |
           IMAGE_ID=$(docker images -q gudshuis/$(imageRepository):$(tag))
           if [ -z "$IMAGE_ID" ]; then
-            echo "Image not found, building image with tag $(tag)..."
+            echo "Image not found, building it now."
             docker build -t gudshuis/$(imageRepository):$(tag) $(Build.SourcesDirectory)/azure-vote
           else
-            echo "Image found with ID $IMAGE_ID"
+            echo "Image exists with the tag $(tag)."
           fi
-        displayName: 'Tag Docker Image'
+        displayName: 'Tag Docker Image if Not Exists'
 
+      # Step 4: Push the Docker image to Docker Hub
       - task: Docker@2
         displayName: Docker Push
         inputs:
