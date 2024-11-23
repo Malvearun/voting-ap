@@ -1,6 +1,6 @@
 variables:
   containerRegistry: 'dockerhub'
   imageRepository: 'azure-vote-app'
-  tag: 'v2'
+  tag: 'v3'
   kubernetesServiceConnection: 'az-k8s'  # Kubernetes service connection
   dockerServiceConnection: 'dockerhub'   # Docker Hub service connection
