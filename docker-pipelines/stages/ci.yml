@@ -10,6 +10,17 @@ jobs:
           tags: $(tag)
           buildContext: $(Build.SourcesDirectory)
 
+      # Add the Docker tag command to tag the image after building it
+      - script: |
+          IMAGE_ID=$(docker images -q gudshuis/$(imageRepository):$(tag))
+          if [ -z "$IMAGE_ID" ]; then
+            echo "Image not found, building image with tag $(tag)..."
+            docker build -t gudshuis/$(imageRepository):$(tag) $(Build.SourcesDirectory)/azure-vote
+          else
+            echo "Image found with ID $IMAGE_ID"
+          fi
+        displayName: 'Tag Docker Image'
+
       - task: Docker@2
         displayName: Docker Push
         inputs:
