@@ -1,0 +1,20 @@
+jobs:
+  - job: Deploy
+    displayName: Deploy Docker Image to Kubernetes
+    steps:
+      - task: Docker@2
+        displayName: Pull Docker Image
+        inputs:
+          command: pull
+          repository: gudshuis/$(imageRepository)
+          tags: $(tag)
+          containerRegistry: $(dockerServiceConnection)  # Docker Hub service connection
+
+      - task: Kubernetes@1
+        displayName: Deploy to Kubernetes
+        inputs:
+          connectionType: 'Kubernetes Service Connection'
+          kubernetesServiceConnection: $(kubernetesServiceConnection)  # Azure Kubernetes service connection
+          namespace: 'default'
+          command: 'apply'
+          arguments: '-f k8s-deployment.yaml'  # Ensure your Kubernetes deployment YAML is here

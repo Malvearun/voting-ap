@@ -1,26 +1,20 @@
-# azure-pipelines.yml
 trigger:
   branches:
     include:
       - main
+      - feature/*
 
+# Import variable template
 variables:
-  - template: vars.yml
+  - template: docker-pipelines/variables/var.yml
 
 stages:
-  - template: ci.yml
-    parameters:
-      containerRegistry: $(containerRegistry)
-      imageRepository: $(imageRepository)
-      dockerHubUsername: $(DOCKER_HUB_USERNAME)
-      dockerHubPassword: $(DOCKER_HUB_PASSWORD)
-      tag: $(tag)
+  - stage: Build
+    displayName: Build Stage
+    jobs:
+      - template: docker-pipelines/stages/ci.yml
 
-  - template: cd.yml
-    parameters:
-      containerRegistry: $(containerRegistry)
-      imageRepository: $(imageRepository)
-      tag: $(tag)
-      helmChartPath: $(helmChartPath)
-      helmReleaseName: $(helmReleaseName)
-      helmNamespace: $(helmNamespace)
+  - stage: Deploy
+    displayName: Deploy Stage
+    jobs:
+      - template: docker-pipelines/stages/cd.yml
