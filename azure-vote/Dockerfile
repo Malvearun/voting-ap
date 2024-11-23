@@ -22,8 +22,8 @@ COPY azure-vote /app
 # Ensure logs directory exists
 RUN mkdir -p /var/log/supervisor/
 
-# Copy Supervisor configuration
-COPY app_init.supervisord.conf /etc/supervisor/conf.d/
+# Copy Supervisor configuration (Make sure this path is correct)
+COPY azure-vote/app_init.supervisord.conf /etc/supervisor/conf.d/
 
 # Configure SSH (set up root password and default SSH settings)
 RUN echo "root:Docker!" | chpasswd && \
