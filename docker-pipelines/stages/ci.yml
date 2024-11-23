@@ -1,3 +1,10 @@
+variables:
+  containerRegistry: 'dockerhub'
+  imageRepository: 'azure-vote-app'
+  tag: 'v2'
+  kubernetesServiceConnection: 'az-k8s'  # Kubernetes service connection
+  dockerServiceConnection: 'dockerhub'   # Docker Hub service connection
+
 jobs:
   - job: Build
     displayName: Build and Push Docker Image
@@ -8,7 +15,7 @@ jobs:
         inputs:
           command: build
           dockerFile: $(Build.SourcesDirectory)/azure-vote/Dockerfile
-          tags: $(tag)
+          tags: $(imageRepository):$(tag)  # Ensure the tag is added here
           buildContext: $(Build.SourcesDirectory)
 
       # Step 2: Debugging step to list all Docker images
