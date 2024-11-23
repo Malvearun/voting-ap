@@ -15,7 +15,7 @@ jobs:
         inputs:
           command: build
           dockerFile: $(Build.SourcesDirectory)/azure-vote/Dockerfile
-          tags: $(imageRepository):$(tag)  # Ensure the tag is added here
+          tags: $(tag)  # Don't rely on full tag here
           buildContext: $(Build.SourcesDirectory)
 
       # Step 2: Debugging step to list all Docker images
@@ -24,16 +24,19 @@ jobs:
           docker images
         displayName: 'List Docker Images for Debugging'
 
-      # Step 3: Manually tag the image if it doesn't exist
+      # Step 3: Tag any untagged image with the correct name and tag
       - script: |
-          IMAGE_ID=$(docker images -q gudshuis/$(imageRepository):$(tag))
-          if [ -z "$IMAGE_ID" ]; then
-            echo "Image not found, building it now."
-            docker build -t gudshuis/$(imageRepository):$(tag) $(Build.SourcesDirectory)/azure-vote
+          echo "Checking for untagged images..."
+          # Find the image ID of the untagged image
+          IMAGE_ID=$(docker images -q --filter "dangling=true")
+          if [ -n "$IMAGE_ID" ]; then
+            echo "Found untagged image, tagging it now."
+            # Tag the untagged image with the correct name and tag
+            docker tag $IMAGE_ID gudshuis/$(imageRepository):$(tag)
           else
-            echo "Image exists with the tag $(tag)."
+            echo "No untagged image found."
           fi
-        displayName: 'Tag Docker Image if Not Exists'
+        displayName: 'Tag Untagged Image if Exists'
 
       # Step 4: Push the Docker image to Docker Hub
       - task: Docker@2
