@@ -9,12 +9,42 @@ variables:
   - template: variables/var.yml   # Correct path to var.yml
 
 stages:
+  - stage: ApproveRelease_Build
+    displayName: Approve Release Build
+    jobs:
+      - deployment: ReviewRelease_App
+        pool: Default
+        environment: Approval-Updates
+        continueOnError: false
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+              - script: echo "Deploying Application after approval"
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
+
   - stage: Build
     displayName: Build Stage
+    dependsOn: ApproveRelease_Build
     jobs:
       - template: stages/ci.yml
 
+  - stage: ApproveRelease_Deploy
+    displayName: Approve Release Deploy
+    jobs:
+      - deployment: DeployApproval
+        pool: Default
+        environment: Approval-Deploy
+        continueOnError: false
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+              - script: echo "Deploying Application after approval"
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
+
   - stage: Deploy
     displayName: Deploy Stage
+    dependsOn: ApproveRelease_Deploy
     jobs:
       - template: stages/cd.yml
