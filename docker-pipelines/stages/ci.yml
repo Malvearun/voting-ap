@@ -1,50 +1,100 @@
-variables:
-  containerRegistry: 'dockerhub'
-  imageRepository: 'azure-vote-app'
-  tag: 'v2'
-  kubernetesServiceConnection: 'az-k8s'  # Kubernetes service connection
-  dockerServiceConnection: 'dockerhub'   # Docker Hub service connection
-  timestamp: $[format('{0:yyyyMMdd-HHmmss}', pipeline().startTime)]  # Current timestamp
+parameters:
+  - name: containerRegistryServiceConnection
+    default: 'dockerhub'
+  - name: imageRepository
+    default: 'azure-vote-app'
+  - name: containerRegistry
+    default: 'docker.io'
+  - name: dockerfilePath
+    default: 'azure-vote/Dockerfile'
+  - name: tag
+    default: 'v2'  # or you can use a dynamic tag like BuildId or timestamp
 
-jobs:
+stages:
+- stage: Build
+  displayName: Build and Push Docker Image
+  jobs:  
   - job: Build
-    displayName: Build and Push Docker Image
+    displayName: Build Image Job
+    pool:
+      vmImage: ubuntu-latest
     steps:
-      # Step 1: Build the Docker image
-      - task: Docker@2
-        displayName: Docker Build
-        inputs:
-          command: build
-          dockerFile: $(Build.SourcesDirectory)/azure-vote/Dockerfile
-          tags: $(tag)  # Don't rely on full tag here
-          buildContext: $(Build.SourcesDirectory)
+    # Step 1: Login to Docker Hub
+    - task: Docker@2
+      displayName: 'Login to Docker Hub'
+      inputs:
+        command: login
+        containerRegistry: 'dockerhub'  # Docker Hub service connection
 
-      # Step 2: Debugging step to list all Docker images
-      - script: |
-          echo "Listing all Docker images:"
-          docker images
-        displayName: 'List Docker Images for Debugging'
+    # Step 2: Build the Docker image
+    - task: Docker@2
+      displayName: 'Build Docker Image'
+      inputs:
+        command: build
+        dockerFile: ${{ parameters.dockerfilePath }}
+        buildContext: $(Build.SourcesDirectory)
+        tags: ${{ parameters.tag }}  # Ensure you're tagging the image properly here
 
-      # Step 3: Rename any untagged image with today's date and time
-      - script: |
-          echo "Checking for untagged images..."
-          # Find the image ID of the untagged image
-          IMAGE_ID=$(docker images -q --filter "dangling=true")
-          if [ -n "$IMAGE_ID" ]; then
-            echo "Found untagged image, renaming it with today's timestamp."
-            # Rename the image with a new tag based on today's timestamp
-            docker tag $IMAGE_ID gudshuis/$(imageRepository):$(timestamp)
-            echo "Renamed image to gudshuis/$(imageRepository):$(timestamp)"
-          else
-            echo "No untagged image found."
-          fi
-        displayName: 'Rename Untagged Image with Timestamp'
+    # Step 3: List Docker images for debugging
+    - script: |
+        echo "Listing all Docker images:"
+        docker images
+      displayName: 'List Docker Images for Debugging'
 
-      # Step 4: Push the Docker image to Docker Hub
-      - task: Docker@2
-        displayName: Docker Push
-        inputs:
-          command: push
-          repository: gudshuis/$(imageRepository)
-          tags: $(timestamp)  # Use the timestamp as the tag
-          containerRegistry: $(dockerServiceConnection)  # Docker Hub service connection
+    # Step 4: Rename image with a timestamp if needed
+    - script: |
+        echo "Renaming image with a timestamp..."
+        IMAGE_ID=$(docker images -q --filter "dangling=true")
+        if [ -n "$IMAGE_ID" ]; then
+          # Rename the image with today's date and time (or any other format)
+          TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
+          docker tag $IMAGE_ID gudshuis/$(imageRepository):$TIMESTAMP
+          echo "Renamed image to gudshuis/$(imageRepository):$TIMESTAMP"
+        else
+          echo "No untagged images found."
+        fi
+      displayName: 'Rename Untagged Image with Timestamp'
+
+    # Step 5: Push the Docker image to Docker Hub
+    - task: Docker@2
+      displayName: 'Push Docker Image to Docker Hub'
+      inputs:
+        command: push
+        repository: gudshuis/$(imageRepository)
+        tags: ${{ parameters.tag }}  # Use the tag from earlier or the timestamp
+        containerRegistry: 'dockerhub'  # Docker Hub service connection
+
+  - job: GenerateCIVersion
+    displayName: 'Generate CI Version'
+    steps:
+    - bash: |
+        # Generate a unique build reference with date and time
+        buildRef="voteapp_$(Build.BuildId)_$(date +'%d%m%y%H%M%S')"
+        buildRef=${buildRef//:/_}  # Replace colons with underscores for compatibility
+        echo $buildRef
+        echo "##vso[task.setvariable variable=buildName;isOutput=true]$buildRef"
+      name: buildName
+
+  - job: PublishBuildArtifacts
+    dependsOn: GenerateCIVersion
+    variables:
+      varFromGenerateCIVersion: $[ dependencies.GenerateCIVersion.outputs['buildName.buildName'] ]
+    steps:
+    - bash: |
+        # Replace image tag in the manifest YAML file
+        imageName="${{ parameters.containerRegistry }}\/${{ parameters.imageRepository }}:${{ parameters.tag }}"
+        sed -ie "s/image: mcr.microsoft.com\/azuredocs\/azure-vote-front:v1/image: $imageName/g" azure-vote-all-in-one-redis.yaml
+      name: replaceImagetag
+
+    - bash: |
+        # Rename and prepare manifest with the generated build reference
+        echo 'New file name is $(varFromGenerateCIVersion)'
+        cp -v azure-vote-all-in-one-redis.yaml '$(Build.ArtifactStagingDirectory)/$(varFromGenerateCIVersion).yaml'
+      name: renameManifest
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Build Artifacts'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'votingappManifest'
+        publishLocation: 'Container'
