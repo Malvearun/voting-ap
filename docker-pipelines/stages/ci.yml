@@ -1,24 +1,12 @@
-parameters:
-  - name: containerRegistryServiceConnection
-    default: 'dockerhub'
-  - name: imageRepository
-    default: 'azure-vote-app'
-  - name: containerRegistry
-    default: 'docker.io'
-  - name: dockerfilePath
-    default: 'azure-vote/Dockerfile'
-  - name: tag
-    default: 'v2'
+pool:
+  name: 'Default'  # This refers to the default agent pool
+  demands:
+    - agent.name -equals BuildAgent  # This ensures the "BuildAgent" is specifically used
 
-stages:
-- stage: Build
+jobs:
+- job: BuildAndPush
   displayName: Build and Push Docker Image
-  jobs:
-  - job: Build
-    displayName: Build Image Job
-    pool:
-      vmImage: ubuntu-latest
-    steps:
+  steps:
     - task: Docker@2
       displayName: 'Login to Docker Hub'
       inputs:
@@ -26,12 +14,15 @@ stages:
         containerRegistry: 'dockerhub'
 
     - script: |
-        # Build the Docker image and tag it
-        docker build -f ${{ parameters.dockerfilePath }} -t ${{ parameters.containerRegistry }}/${{ parameters.imageRepository }}:${{ parameters.tag }} .
+        # Build the Docker image
+        docker build -t ${{ parameters.containerRegistry }}/${{ parameters.imageRepository }}:${{ parameters.tag }} ${{ parameters.dockerfilePath }}
         
-        # List images to confirm it is tagged correctly
+        # List Docker images to confirm the build and tag
         docker images
         
-        # Push the Docker image to Docker Hub
+        # If the image is built but not tagged, tag it explicitly
+        docker tag ${{ parameters.imageRepository }}:${{ parameters.tag }} ${{ parameters.containerRegistry }}/${{ parameters.imageRepository }}:${{ parameters.tag }}
+        
+        # Now push the image
         docker push ${{ parameters.containerRegistry }}/${{ parameters.imageRepository }}:${{ parameters.tag }}
       displayName: 'Build and Push Docker Image'
