@@ -4,6 +4,7 @@ variables:
   tag: 'v2'
   kubernetesServiceConnection: 'az-k8s'  # Kubernetes service connection
   dockerServiceConnection: 'dockerhub'   # Docker Hub service connection
+  timestamp: $[format('{0:yyyyMMdd-HHmmss}', pipeline().startTime)]  # Current timestamp
 
 jobs:
   - job: Build
@@ -24,19 +25,20 @@ jobs:
           docker images
         displayName: 'List Docker Images for Debugging'
 
-      # Step 3: Tag any untagged image with the correct name and tag
+      # Step 3: Rename any untagged image with today's date and time
       - script: |
           echo "Checking for untagged images..."
           # Find the image ID of the untagged image
           IMAGE_ID=$(docker images -q --filter "dangling=true")
           if [ -n "$IMAGE_ID" ]; then
-            echo "Found untagged image, tagging it now."
-            # Tag the untagged image with the correct name and tag
-            docker tag $IMAGE_ID gudshuis/$(imageRepository):$(tag)
+            echo "Found untagged image, renaming it with today's timestamp."
+            # Rename the image with a new tag based on today's timestamp
+            docker tag $IMAGE_ID gudshuis/$(imageRepository):$(timestamp)
+            echo "Renamed image to gudshuis/$(imageRepository):$(timestamp)"
           else
             echo "No untagged image found."
           fi
-        displayName: 'Tag Untagged Image if Exists'
+        displayName: 'Rename Untagged Image with Timestamp'
 
       # Step 4: Push the Docker image to Docker Hub
       - task: Docker@2
@@ -44,5 +46,5 @@ jobs:
         inputs:
           command: push
           repository: gudshuis/$(imageRepository)
-          tags: $(tag)
+          tags: $(timestamp)  # Use the timestamp as the tag
           containerRegistry: $(dockerServiceConnection)  # Docker Hub service connection
